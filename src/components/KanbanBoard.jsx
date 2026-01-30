@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import axios from "axios";
 
 // Columns definition
-const columnsOrder = ["todo", "inProgress", "done"];
+const columnsOrder = ["todo", "in_progress", "done"];
 const columnsNames = {
   todo: "To Do",
-  inProgress: "In Progress",
+  in_progress: "In Progress",
   done: "Done",
 };
 
 export default function KanbanBoard({ projectId }) {
   const [tickets, setTickets] = useState({
     todo: [],
-    inProgress: [],
+    in_progress: [],
     done: [],
   });
 
@@ -22,7 +22,7 @@ export default function KanbanBoard({ projectId }) {
     async function fetchTickets() {
       try {
         const res = await axios.get(`/api/projects/${projectId}/tickets`);
-        const grouped = { todo: [], inProgress: [], done: [] };
+        const grouped = { todo: [], in_progress: [], done: [] };
         res.data.forEach((t) => grouped[t.status].push(t));
         setTickets(grouped);
       } catch (err) {
