@@ -1,60 +1,70 @@
 // src/api/project.js
-const API_URL = "http://localhost:4000/api/projects";
+const BASE_URL = import.meta.env.VITE_API_URL;
+const API_URL = `${BASE_URL}/api/projects`;
+
+const authHeader = (token) => ({
+  Authorization: `Bearer ${token}`,
+});
+
+const jsonAuthHeader = (token) => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${token}`,
+});
+
+const handleResponse = async (res, errorMessage) => {
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || errorMessage);
+  }
+  return res.json();
+};
 
 export const getProjects = async (token) => {
-  const res = await fetch(API_URL, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) throw new Error("Failed to load projects");
-  return res.json();
+  const res = await fetch(API_URL, {
+    headers: authHeader(token),
+  });
+  return handleResponse(res, "Failed to load projects");
 };
 
 export const createProject = async (data, token) => {
   const res = await fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: jsonAuthHeader(token),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Create project failed");
-  return res.json();
+  return handleResponse(res, "Create project failed");
 };
 
 export const updateProject = async (id, data, token) => {
   const res = await fetch(`${API_URL}/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: jsonAuthHeader(token),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Update project failed");
-  return res.json();
+  return handleResponse(res, "Update project failed");
 };
 
 export const deleteProject = async (id, token) => {
   const res = await fetch(`${API_URL}/${id}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeader(token),
   });
-  if (!res.ok) throw new Error("Delete project failed");
-  return res.json();
+  return handleResponse(res, "Delete project failed");
 };
 
 export const addMember = async (projectId, data, token) => {
   const res = await fetch(`${API_URL}/${projectId}/members`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: jsonAuthHeader(token),
     body: JSON.stringify(data), // { email }
   });
-
-  if (!res.ok) throw new Error("Add member failed");
-  return res.json();
+  return handleResponse(res, "Add member failed");
 };
 
 export const removeMember = async (projectId, userId, token) => {
   const res = await fetch(`${API_URL}/${projectId}/members/${userId}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeader(token),
   });
-  if (!res.ok) throw new Error("Remove member failed");
-  return res.json();
+  return handleResponse(res, "Remove member failed");
 };
