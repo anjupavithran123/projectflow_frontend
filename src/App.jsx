@@ -10,6 +10,7 @@ import ProtectedRoute from "./components/protectedroute";
 import KanbanOverview from "./pages/KanbanOverview";
 import KanbanPage from "./pages/Kanbanpage"; // ✅ fixed import
 import ForgotPassword from "./pages/ForgotPassword";
+import Members from "./pages/Members";
 export default function App() {
   return (
     <BrowserRouter>
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:projectId" element={<Ticketpage />} />
+          <Route path="/members" element={<Members />} />
           <Route path="/kanban-overview" element={<KanbanOverview />} />
           <Route
             path="/projects/:projectId/kanban"

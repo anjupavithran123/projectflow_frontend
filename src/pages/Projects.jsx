@@ -1,12 +1,17 @@
-// src/pages/Projects.jsx
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import {
+  FaSave,
+  FaUserPlus,
+  FaUsers,
+  FaTrash,
+  FaTicketAlt,
+} from "react-icons/fa";
 
 import { getUsers } from "../api/user";
 import {
   getProjects,
-  createProject,
   updateProject,
   deleteProject,
   addMember,
@@ -16,240 +21,239 @@ import CreateProject from "../components/CreateProject";
 
 export default function Projects() {
   const { token } = useAuth();
+  const location = useLocation();
+  const selectedProjectId = location.state?.selectedProjectId;
+
   const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
 
-  // Track editing / member input states
   const [editData, setEditData] = useState({});
   const [memberInput, setMemberInput] = useState({});
+  const [membersVisible, setMembersVisible] = useState({});
 
-  // Load projects on mount
   useEffect(() => {
-    loadProjects();
-  }, []);
+    if (!token) return;
+    getUsers(token).then(setUsers).catch(console.error);
+  }, [token]);
 
+  useEffect(() => {
+    if (!token) return;
+    getProjects(token)
+      .then((data) => {
+        if (!Array.isArray(data)) return setProjects([]);
+        if (selectedProjectId) {
+          const selected = data.find((p) => p.id === selectedProjectId);
+          const rest = data.filter((p) => p.id !== selectedProjectId);
+          setProjects(selected ? [selected, ...rest] : data);
+        } else setProjects(data);
+      })
+      .catch(console.error);
+  }, [token, selectedProjectId]);
 
-  
-//users
-
-useEffect(() => {
-  const loadUsers = async () => {
-    try {
-      const data = await getUsers(token);
-      setUsers(data);
-    } catch (err) {
-      console.error("Failed to load users", err);
-    }
-  };
-
-  if (token) loadUsers();
-}, [token]);
-
-
-  const loadProjects = async () => {
-    try {
-      const data = await getProjects(token);
-      setProjects(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Failed to load projects:", err);
-    }
-  };
-
-  // Update project
   const handleUpdate = async (projectId) => {
     const { name, description } = editData[projectId] || {};
     if (!name) return;
     const updated = await updateProject(projectId, { name, description }, token);
-    setProjects((prev) => prev.map((p) => (p.id === projectId ? updated : p)));
-    setEditData((prev) => ({ ...prev, [projectId]: {} }));
+    setProjects((p) => p.map((x) => (x.id === projectId ? updated : x)));
+    setEditData((p) => ({ ...p, [projectId]: {} }));
   };
 
-  // Delete project
   const handleDelete = async (projectId) => {
     await deleteProject(projectId, token);
-    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    setProjects((p) => p.filter((x) => x.id !== projectId));
   };
 
+  const toggleMembers = (projectId) => {
+    setMembersVisible((p) => ({ ...p, [projectId]: !p[projectId] }));
+  };
 
-
-  // Add member
   const handleAddMember = async (projectId) => {
     const user_id = memberInput[projectId];
-    if (!user_id) return alert("Select a user first");
-  
-    try {
-      await addMember(projectId, { user_id }, token);
-      setMemberInput((prev) => ({ ...prev, [projectId]: "" }));
-      loadProjects(); // refresh projects with updated members
-    } catch (err) {
-      console.error("Add member failed", err);
-      alert("Add member failed");
-    }
+    if (!user_id) return;
+    await addMember(projectId, { user_id }, token);
+    setMemberInput((p) => ({ ...p, [projectId]: "" }));
+    setProjects(await getProjects(token));
   };
-  
-  // Remove member
+
   const handleRemoveMember = async (projectId, userId) => {
-    if (!userId) return alert("Invalid member selected");
-  
-    try {
-      await removeMember(projectId, userId, token);
-      loadProjects(); // refresh after removing
-    } catch (err) {
-      console.error("Remove member failed", err);
-      alert("Remove member failed");
-    }
+    await removeMember(projectId, userId, token);
+    setProjects(await getProjects(token));
   };
-  
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-  <h2 className="text-2xl font-bold text-gray-800">My Projects</h2>
+    <div className="min-h-screen bg-gray-100 py-10 px-4">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-800">My Projects</h1>
+          <button
+            onClick={() => setShowCreate((p) => !p)}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium
+                       hover:bg-indigo-700 transition shadow-sm"
+          >
+            + New Project
+          </button>
+        </div>
 
-  <button
-    onClick={() => setShowCreate((prev) => !prev)}
-    className="
-      px-4 py-2 bg-blue-600 text-white text-sm font-medium
-      rounded hover:bg-blue-700 transition
-    "
-  >
-    + New Project
-  </button>
-</div>
-
-        {/* Create Project */}
+        {/* Create Project Card */}
         {showCreate && (
-  <CreateProject
-    onCreated={(p) => {
-      setProjects([p, ...projects]);
-      setShowCreate(false); // auto-close after create
-    }}
-  />
-)}
+          <div className="bg-white border rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-700 mb-4">
+              Create Project
+            </h2>
+            <CreateProject
+              onCreated={(p) => {
+                setProjects([p, ...projects]);
+                setShowCreate(false);
+              }}
+            />
+          </div>
+        )}
 
-
+        {/* Project Cards */}
         <div className="grid gap-6">
           {projects.length === 0 && (
-            <p className="text-gray-500">No projects yet.</p>
+            <p className="text-gray-500 text-center">No projects yet.</p>
           )}
 
           {projects.map((p) => (
-            <div key={p.id} className="bg-white shadow rounded-xl p-6 space-y-4">
+            <div
+              key={p.id}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+            >
               {/* Project Info */}
-              <div>
+              <div className="space-y-3">
                 <input
-                  type="text"
-                  placeholder="Project Name"
                   value={editData[p.id]?.name ?? p.name}
                   onChange={(e) =>
-                    setEditData((prev) => ({
-                      ...prev,
-                      [p.id]: { ...prev[p.id], name: e.target.value },
+                    setEditData((x) => ({
+                      ...x,
+                      [p.id]: { ...x[p.id], name: e.target.value },
                     }))
                   }
-                  className="w-full px-3 py-2 border rounded mb-2"
+                  className="w-full text-lg font-semibold rounded-lg border px-3 py-2
+                             focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
+
                 <textarea
-                  placeholder="Description"
                   value={editData[p.id]?.description ?? p.description}
                   onChange={(e) =>
-                    setEditData((prev) => ({
-                      ...prev,
-                      [p.id]: { ...prev[p.id], description: e.target.value },
+                    setEditData((x) => ({
+                      ...x,
+                      [p.id]: { ...x[p.id], description: e.target.value },
                     }))
                   }
-                  className="w-full px-3 py-2 border rounded mb-2"
-                  rows="2"
+                  rows={2}
+                  className="w-full rounded-lg border px-3 py-2 text-sm
+                             focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleUpdate(p.id)}
-                    className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    onClick={() => handleDelete(p.id)}
-                    className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition"
-                  >
-                    Delete Project
-                  </button>
-                    {/* ✅ CORRECT: p is in scope */}
-                    <Link
-  to={`/projects/${p.id}`}
-  state={{ projectName: p.name }}
-  className="px-3 py-1 bg-blue-100 text-blue-700 rounded"
->
-  View Tickets →
-</Link>
-
-     
-  
-                </div>
               </div>
 
-            {/* Members Management */}
-<div className="mt-4 border-t pt-4">
-  <h4 className="font-semibold text-gray-700 mb-2">Members</h4>
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                <button
+                  onClick={() => handleUpdate(p.id)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg
+                             bg-amber-100 text-amber-700 hover:bg-amber-200"
+                >
+                  <FaSave /> 
+                </button>
 
-  <div className="flex gap-2 mb-2">
-  <select
-  value={memberInput[p.id] || ""}
-  onChange={(e) =>
-    setMemberInput((prev) => ({ ...prev, [p.id]: e.target.value }))
-  }
-  className="px-3 py-2 border rounded w-full"
->
-  <option value="">Select user</option>
-  {users
-    .filter(u => !p.members?.some(m => m.user_id === u.id)) // exclude current members
-    .map(u => (
-      <option key={u.id} value={u.id}>
-        {u.name || u.email}
-      </option>
-    ))}
-</select>
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg
+                             bg-red-100 text-red-700 hover:bg-red-200"
+                >
+                  <FaTrash />
+                </button>
 
+                <button
+                  onClick={() => toggleMembers(p.id)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg
+                             bg-gray-100 text-gray-700 hover:bg-gray-200"
+                >
+                  <FaUsers />
+                  {membersVisible[p.id] ? "Hide Members" : "Members"}
+                </button>
 
-    <button
-      onClick={() => handleAddMember(p.id)}
-      className="px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition"
-    >
-      Add Member
-    </button>
-  </div>
+            
+                <Link
+                  to={`/projects/${p.id}`}
+                  state={{ projectName: p.name }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg
+                             bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                >
+                  <FaTicketAlt /> Tickets
+                </Link>
+              </div>
 
-  <div className="flex flex-wrap gap-2">
-    {p.members?.length > 0 ? (
-      p.members.map((m, index) => (
-        <div
-          key={`${p.id}-${m.user_id}-${index}`} // ✅ unique key per project + member
-          className="bg-blue-50 text-blue-700 px-2 py-1 rounded flex items-center gap-2"
-        >
-          <span>
-            {m.users?.name || m.users?.email} ({m.role})
-          </span>
-          <button
-  onClick={() => handleRemoveMember(p.id, m.users.id)}
-  className="text-red-500 hover:text-red-700"
->
-  &times;
-</button>
+              {/* Members */}
+              {membersVisible[p.id] && (
+                <div className="mt-6 border-t pt-4 space-y-3">
+                  <div className="flex gap-2">
+                    <select
+                      value={memberInput[p.id] || ""}
+                      onChange={(e) =>
+                        setMemberInput((x) => ({
+                          ...x,
+                          [p.id]: e.target.value,
+                        }))
+                      }
+                      className="flex-1 rounded-lg border px-3 py-2 text-sm"
+                    >
+                      <option value="">Select user</option>
+                      {users
+                        .filter(
+                          (u) =>
+                            !p.members?.some((m) => m.user_id === u.id)
+                        )
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name || u.email}
+                          </option>
+                        ))}
+                    </select>
 
-        </div>
-      ))
-    ) : (
-      <p className="text-gray-400 text-sm">No members yet.</p>
-    )}
-  </div>
-</div>
+                    <button
+                      onClick={() => handleAddMember(p.id)}
+                      className="px-3 py-2 rounded-lg bg-green-100 text-green-700
+                                 hover:bg-green-200 flex items-center gap-2"
+                    >
+                      <FaUserPlus /> Add
+                    </button>
+                  </div>
 
+                  <div className="flex flex-wrap gap-2">
+                    {p.members?.length ? (
+                      p.members.map((m) => (
+                        <span
+                          key={m.user_id}
+                          className="flex items-center gap-2 px-3 py-1 rounded-full
+                                     bg-indigo-50 text-indigo-700 text-sm"
+                        >
+                          {m.users?.name || m.users?.email}
+                          <button
+                            onClick={() =>
+                              handleRemoveMember(p.id, m.users.id)
+                            }
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-400">
+                        No members yet.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
-        
       </div>
     </div>
   );

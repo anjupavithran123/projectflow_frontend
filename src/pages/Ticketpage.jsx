@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import TicketForm from "../components/TicketForm";
 import TicketList from "../components/TicketList";
 import { getTickets, deleteTicket, updateTicket } from "../api/ticket";
@@ -7,14 +7,13 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Ticketpage() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const { token, currentUser } = useAuth();
 
   const [tickets, setTickets] = useState([]);
   const [members, setMembers] = useState([]);
   const [editingTicket, setEditingTicket] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // 🔹 State to show/hide the form
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const [filters, setFilters] = useState({
@@ -37,10 +36,8 @@ export default function Ticketpage() {
 
   useEffect(() => {
     if (token && projectId) {
-      const delayDebounceFn = setTimeout(() => {
-        loadTickets();
-      }, 300);
-      return () => clearTimeout(delayDebounceFn);
+      const delay = setTimeout(loadTickets, 300);
+      return () => clearTimeout(delay);
     }
   }, [loadTickets]);
 
@@ -72,7 +69,7 @@ export default function Ticketpage() {
         : [ticket, ...prev];
     });
     setEditingTicket(null);
-    setIsFormOpen(false); // Hide form after saving
+    setIsFormOpen(false);
   };
 
   const handleDelete = async (ticketId) => {
@@ -80,14 +77,14 @@ export default function Ticketpage() {
     try {
       await deleteTicket(ticketId, token);
       setTickets((prev) => prev.filter((t) => t.id !== ticketId));
-    } catch (err) {
+    } catch {
       alert("Failed to delete ticket");
     }
   };
 
   const handleEdit = (ticket) => {
     setEditingTicket(ticket);
-    setIsFormOpen(true); // Open form for editing
+    setIsFormOpen(true);
   };
 
   const handleStatusChange = async (ticketId, status) => {
@@ -96,37 +93,56 @@ export default function Ticketpage() {
     );
     try {
       await updateTicket(ticketId, { status }, token);
-    } catch (err) {
+    } catch {
       alert("Status update failed");
       loadTickets();
     }
   };
 
   if (!token || (loading && tickets.length === 0)) {
-    return <div className="p-6 text-center text-gray-500">Loading tickets...</div>;
+    return (
+      <div className="p-6 text-center text-gray-500">
+        Loading tickets...
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-5xl mx-auto bg-white p-6 rounded-xl shadow">
-        
-        {/* Header with New Ticket Button */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Project Tickets</h1>
+      <div className="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-sm">
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            {/* 🔙 Back Button */}
+            <button
+  onClick={() => navigate(-1)}
+  className="h-10 w-10 flex items-center justify-center rounded-lg border border-gray-300
+             text-gray-800 text-xl font-bold hover:bg-gray-100 transition"
+  title="Go back"
+>
+  ←
+</button>
+
+            <h1 className="text-2xl font-semibold text-gray-800">
+              Project Tickets
+            </h1>
+          </div>
+
           <button
             onClick={() => {
               setEditingTicket(null);
               setIsFormOpen(!isFormOpen);
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition"
           >
             {isFormOpen ? "Close Form" : "+ New Ticket"}
           </button>
         </div>
 
-        {/* 🔹 Conditional Ticket Form */}
+        {/* Ticket Form */}
         {isFormOpen && (
-          <div className="mb-8 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+          <div className="mb-8 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
             <TicketForm
               projectId={projectId}
               token={token}
@@ -141,40 +157,40 @@ export default function Ticketpage() {
           </div>
         )}
 
-        {/* 🔍 Search & Filter Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 bg-gray-50 p-4 rounded-lg border border-gray-200">
+        {/* Filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 bg-gray-50 p-4 rounded-xl border">
           <input
             type="text"
             name="search"
-            placeholder="Search by title..."
-            className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+            placeholder="Search tickets..."
+            className="border p-2 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none"
             value={filters.search}
             onChange={handleFilterChange}
           />
-          <select 
-            name="status" 
-            className="border p-2 rounded-md bg-white" 
+          <select
+            name="status"
+            className="border p-2 rounded-md bg-white"
             value={filters.status}
             onChange={handleFilterChange}
           >
-            <option value="">All Statuses</option>
+            <option value="">All Status</option>
             <option value="todo">To Do</option>
             <option value="in_progress">In Progress</option>
             <option value="done">Done</option>
           </select>
-          <select 
-            name="priority" 
+          <select
+            name="priority"
             className="border p-2 rounded-md bg-white"
             value={filters.priority}
             onChange={handleFilterChange}
           >
-            <option value="">All Priorities</option>
+            <option value="">All Priority</option>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
           </select>
-          <select 
-            name="assignee" 
+          <select
+            name="assignee"
             className="border p-2 rounded-md bg-white"
             value={filters.assignee}
             onChange={handleFilterChange}
@@ -188,21 +204,21 @@ export default function Ticketpage() {
           </select>
         </div>
 
-        <div className="mt-8">
-          <TicketList
-            tickets={tickets}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onStatusChange={handleStatusChange}
-            userId={currentUser?.id}
-            token={token}
-          />
-          {tickets.length === 0 && !loading && (
-            <p className="text-center text-gray-400 py-10 italic">
-              No tickets found matching your criteria.
-            </p>
-          )}
-        </div>
+        {/* Ticket List */}
+        <TicketList
+          tickets={tickets}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onStatusChange={handleStatusChange}
+          userId={currentUser?.id}
+          token={token}
+        />
+
+        {tickets.length === 0 && !loading && (
+          <p className="text-center text-gray-400 py-10 italic">
+            No tickets found.
+          </p>
+        )}
       </div>
     </div>
   );

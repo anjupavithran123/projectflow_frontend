@@ -15,6 +15,8 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser({
           id: decoded.id,
           email: decoded.email,
+          name: decoded.name,   // ✅ Add name
+          role: decoded.role,   // optional if needed
         });
       } catch (err) {
         console.error("Invalid token");
@@ -24,12 +26,19 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(null);
     }
   }, [token]);
-
-  const login = (newToken) => {
-    localStorage.setItem("token", newToken);
-    setToken(newToken);
+  
+  const login = (token, user) => {
+    // 1️⃣ Save token
+    localStorage.setItem("token", token);
+  
+    // 2️⃣ Save full user object
+    localStorage.setItem("user", JSON.stringify(user));
+  
+    // 3️⃣ Update state
+    setToken(token);
+    setCurrentUser(user);
   };
-
+  
   const logout = () => {
     localStorage.removeItem("token");
     setToken(null);
