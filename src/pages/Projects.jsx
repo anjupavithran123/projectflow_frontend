@@ -41,20 +41,25 @@ export default function Projects() {
   /* Load projects */
   useEffect(() => {
     if (!token) return;
+  
     getProjects(token)
       .then((data) => {
         if (!Array.isArray(data)) return setProjects([]);
+  
+        // ✅ SHOW ONLY SELECTED PROJECT
         if (selectedProjectId) {
-          const selected = data.find((p) => p.id === selectedProjectId);
-          const rest = data.filter((p) => p.id !== selectedProjectId);
-          setProjects(selected ? [selected, ...rest] : data);
+          const selected = data.find(
+            (p) => String(p.id) === String(selectedProjectId)
+          );
+          setProjects(selected ? [selected] : []);
         } else {
+          // ✅ No selection → show all projects
           setProjects(data);
         }
       })
       .catch(console.error);
   }, [token, selectedProjectId]);
-
+  
   /* Actions */
   const handleUpdate = async (projectId) => {
     const project = projects.find((p) => p.id === projectId);
@@ -219,7 +224,7 @@ export default function Projects() {
                     state={{ projectName: p.name }}
                     className="p-2 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
                   >
-                    <FaTicketAlt />
+                    <FaTicketAlt />Ticket
                   </Link>
                 </div>
 
