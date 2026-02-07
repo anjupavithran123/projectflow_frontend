@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from "react";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 const AuthContext = createContext();
 
@@ -9,36 +9,31 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setCurrentUser({
-          id: decoded.id,
-          email: decoded.email,
-          name: decoded.name,   // ✅ Add name
-          role: decoded.role,   // optional if needed
-        });
-      } catch (err) {
-        console.error("Invalid token");
-        logout();
-      }
-    } else {
+    if (!token) {
       setCurrentUser(null);
+      return;
+    }
+
+    try {
+      const decoded = jwtDecode(token);
+
+      setCurrentUser({
+        id: decoded.id,
+        email: decoded.email,
+        name: decoded.name,
+        role: decoded.role, // 🔥 ADMIN COMES FROM JWT
+      });
+    } catch (err) {
+      console.error("Invalid token");
+      logout();
     }
   }, [token]);
-  
-  const login = (token, user) => {
-    // 1️⃣ Save token
+
+  const login = (token) => {
     localStorage.setItem("token", token);
-  
-    // 2️⃣ Save full user object
-    localStorage.setItem("user", JSON.stringify(user));
-  
-    // 3️⃣ Update state
     setToken(token);
-    setCurrentUser(user);
   };
-  
+
   const logout = () => {
     localStorage.removeItem("token");
     setToken(null);
@@ -46,9 +41,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider
-      value={{ token, currentUser, login, logout }}
-    >
+    <AuthContext.Provider value={{ token, currentUser, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

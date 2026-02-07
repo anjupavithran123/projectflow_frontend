@@ -5,7 +5,7 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export default function Login() {
+export default function AdminLogin() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,21 +34,21 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 px-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-md bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 space-y-6"
+        className="w-full max-w-md backdrop-blur-xl bg-white/90 border border-white/20 rounded-2xl shadow-2xl p-8 space-y-6"
       >
         {/* Header */}
-        <div className="text-center space-y-1">
+        <div className="text-center space-y-2">
           <h2 className="text-3xl font-extrabold text-gray-800">
-            Welcome Back
+            Admin Login
           </h2>
           <p className="text-sm text-gray-500">
-            Sign in to your account
+            Welcome back! Please sign in
           </p>
         </div>
 
         {/* Error */}
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-2 text-center">
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-2 text-center">
             {error}
           </div>
         )}
@@ -60,7 +60,7 @@ export default function Login() {
           </label>
           <input
             type="email"
-            placeholder="you@example.com"
+            placeholder="admin@example.com"
             className="w-full px-4 py-2.5 rounded-lg border border-gray-300
               focus:outline-none focus:ring-2 focus:ring-blue-500
               focus:border-blue-500 transition"
@@ -89,12 +89,12 @@ export default function Login() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-9 text-gray-500 hover:text-gray-700 transition"
+            className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
           >
             {showPassword ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  d="M3 3l18 18M10.585 10.585A2 2 0 0012 14a2 2 0 002-2" />
+                  d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10" />
               </svg>
             ) : (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -105,7 +105,7 @@ export default function Login() {
           </button>
         </div>
 
-        {/* Forgot Password */}
+        {/* Forgot */}
         <div className="flex justify-end">
           <Link
             to="/forgot-password"
@@ -130,16 +130,7 @@ export default function Login() {
           {loading ? "Signing in..." : "Sign In"}
         </button>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-gray-600">
-          Don&apos;t have an account?{" "}
-          <Link
-            to="/register"
-            className="text-blue-600 font-medium hover:underline"
-          >
-            Register
-          </Link>
-        </p>
+      
       </form>
     </div>
   );

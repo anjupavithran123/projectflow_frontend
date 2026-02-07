@@ -32,11 +32,13 @@ export default function Projects() {
   const [memberInput, setMemberInput] = useState({});
   const [membersVisible, setMembersVisible] = useState({});
 
+  /* Load users */
   useEffect(() => {
     if (!token) return;
     getUsers(token).then(setUsers).catch(console.error);
   }, [token]);
 
+  /* Load projects */
   useEffect(() => {
     if (!token) return;
     getProjects(token)
@@ -46,18 +48,38 @@ export default function Projects() {
           const selected = data.find((p) => p.id === selectedProjectId);
           const rest = data.filter((p) => p.id !== selectedProjectId);
           setProjects(selected ? [selected, ...rest] : data);
-        } else setProjects(data);
+        } else {
+          setProjects(data);
+        }
       })
       .catch(console.error);
   }, [token, selectedProjectId]);
 
+  /* Actions */
   const handleUpdate = async (projectId) => {
-    const { name, description } = editData[projectId] || {};
-    if (!name) return;
-    const updated = await updateProject(projectId, { name, description }, token);
-    setProjects((p) => p.map((x) => (x.id === projectId ? updated : x)));
-    setEditData((p) => ({ ...p, [projectId]: {} }));
+    const project = projects.find((p) => p.id === projectId);
+    const edited = editData[projectId];
+  
+    if (!edited) return;
+  
+    const payload = {
+      name: edited.name ?? project.name,
+      description: edited.description ?? project.description,
+    };
+  
+    const updated = await updateProject(projectId, payload, token);
+  
+    setProjects((p) =>
+      p.map((x) => (x.id === projectId ? updated : x))
+    );
+  
+    setEditData((p) => {
+      const copy = { ...p };
+      delete copy[projectId];
+      return copy;
+    });
   };
+  
 
   const handleDelete = async (projectId) => {
     await deleteProject(projectId, token);
@@ -83,25 +105,22 @@ export default function Projects() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-800">My Projects</h1>
           <button
             onClick={() => setShowCreate((p) => !p)}
             className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium
-                       hover:bg-indigo-700 transition shadow-sm"
+                       hover:bg-indigo-700 transition shadow"
           >
             + New Project
           </button>
         </div>
 
-        {/* Create Project Card */}
+        {/* Create Project */}
         {showCreate && (
-          <div className="bg-white border rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">
-              Create Project
-            </h2>
+          <div className="bg-white rounded-2xl border shadow-sm p-6">
             <CreateProject
               onCreated={(p) => {
                 setProjects([p, ...projects]);
@@ -111,19 +130,22 @@ export default function Projects() {
           </div>
         )}
 
-        {/* Project Cards */}
-        <div className="grid gap-6">
+        {/* Projects Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.length === 0 && (
-            <p className="text-gray-500 text-center">No projects yet.</p>
+            <p className="col-span-full text-center text-gray-500">
+              No projects yet.
+            </p>
           )}
 
           {projects.map((p) => (
             <div
               key={p.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+              className="group bg-white rounded-2xl border shadow-sm
+                         hover:shadow-xl transition-all duration-300"
             >
-              {/* Project Info */}
-              <div className="space-y-3">
+              {/* Header */}
+              <div className="p-5 border-b bg-gradient-to-r from-indigo-50 to-transparent rounded-t-2xl">
                 <input
                   value={editData[p.id]?.name ?? p.name}
                   onChange={(e) =>
@@ -132,65 +154,86 @@ export default function Projects() {
                       [p.id]: { ...x[p.id], name: e.target.value },
                     }))
                   }
-                  className="w-full text-lg font-semibold rounded-lg border px-3 py-2
-                             focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full bg-transparent text-lg font-semibold text-gray-800
+                             focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg px-2"
                 />
+              </div>
 
+              {/* Body */}
+              <div className="p-5 space-y-4">
                 <textarea
                   value={editData[p.id]?.description ?? p.description}
                   onChange={(e) =>
                     setEditData((x) => ({
                       ...x,
-                      [p.id]: { ...x[p.id], description: e.target.value },
+                      [p.id]: {
+                        ...x[p.id],
+                        description: e.target.value,
+                      },
                     }))
                   }
-                  rows={2}
-                  className="w-full rounded-lg border px-3 py-2 text-sm
+                  rows={3}
+                  placeholder="Project description..."
+                  className="w-full resize-none rounded-lg border bg-gray-50 p-3 text-sm
                              focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
+
+                {/* Members preview */}
+                <div className="flex flex-wrap gap-2">
+                  {p.members?.slice(0, 4).map((m) => (
+                    <span
+                      key={m.user_id}
+                      className="px-3 py-1 rounded-full text-xs font-medium
+                                 bg-indigo-100 text-indigo-700"
+                    >
+                      {m.users?.name || m.users?.email}
+                    </span>
+                  ))}
+                  {p.members?.length > 4 && (
+                    <span className="text-xs text-gray-400">
+                      +{p.members.length - 4} more
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex flex-wrap gap-2 mt-4">
-                <button
-                  onClick={() => handleUpdate(p.id)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg
-                             bg-amber-100 text-amber-700 hover:bg-amber-200"
-                >
-                  <FaSave /> 
-                </button>
+              {/* Footer */}
+              <div className="px-5 py-4 border-t flex items-center justify-between">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleUpdate(p.id)}
+                    className="p-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200"
+                  >
+                    <FaSave />
+                  </button>
+
+                  <button
+                    onClick={() => toggleMembers(p.id)}
+                    className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  >
+                    <FaUsers />
+                  </button>
+
+                  <Link
+                    to={`/projects/${p.id}`}
+                    state={{ projectName: p.name }}
+                    className="p-2 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                  >
+                    <FaTicketAlt />
+                  </Link>
+                </div>
 
                 <button
                   onClick={() => handleDelete(p.id)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg
-                             bg-red-100 text-red-700 hover:bg-red-200"
+                  className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200"
                 >
                   <FaTrash />
                 </button>
-
-                <button
-                  onClick={() => toggleMembers(p.id)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg
-                             bg-gray-100 text-gray-700 hover:bg-gray-200"
-                >
-                  <FaUsers />
-                  {membersVisible[p.id] ? "Hide Members" : "Members"}
-                </button>
-
-            
-                <Link
-                  to={`/projects/${p.id}`}
-                  state={{ projectName: p.name }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg
-                             bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-                >
-                  <FaTicketAlt /> Tickets
-                </Link>
               </div>
 
-              {/* Members */}
+              {/* Members Panel */}
               {membersVisible[p.id] && (
-                <div className="mt-6 border-t pt-4 space-y-3">
+                <div className="p-5 border-t bg-gray-50 space-y-4">
                   <div className="flex gap-2">
                     <select
                       value={memberInput[p.id] || ""}
@@ -206,7 +249,9 @@ export default function Projects() {
                       {users
                         .filter(
                           (u) =>
-                            !p.members?.some((m) => m.user_id === u.id)
+                            !p.members?.some(
+                              (m) => m.user_id === u.id
+                            )
                         )
                         .map((u) => (
                           <option key={u.id} value={u.id}>
@@ -217,8 +262,8 @@ export default function Projects() {
 
                     <button
                       onClick={() => handleAddMember(p.id)}
-                      className="px-3 py-2 rounded-lg bg-green-100 text-green-700
-                                 hover:bg-green-200 flex items-center gap-2"
+                      className="px-3 py-2 rounded-lg bg-green-600 text-white
+                                 hover:bg-green-700 flex items-center gap-2"
                     >
                       <FaUserPlus /> Add
                     </button>
@@ -230,7 +275,7 @@ export default function Projects() {
                         <span
                           key={m.user_id}
                           className="flex items-center gap-2 px-3 py-1 rounded-full
-                                     bg-indigo-50 text-indigo-700 text-sm"
+                                     bg-white border text-sm"
                         >
                           {m.users?.name || m.users?.email}
                           <button

@@ -11,6 +11,7 @@ import KanbanOverview from "./pages/KanbanOverview";
 import KanbanPage from "./pages/Kanbanpage"; // ✅ fixed import
 import ForgotPassword from "./pages/ForgotPassword";
 import Members from "./pages/Members";
+import AdminLogin from "./pages/AdminLogin";
 export default function App() {
   return (
     <BrowserRouter>
@@ -18,6 +19,8 @@ export default function App() {
         {/* Public routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/adminlogin" element={<AdminLogin />} />
+ 
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         {/* Protected routes with layout */}
